@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>SystemIOPorts.SerialPort_Mono</id>
+    <version>1.0.0</version>
+    <authors>Michal Dobrodenka</authors>
+    <owners>Michal Dobrodenka</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Mono SerialPort as a NET Standard 2.0 library. Has the same limitations as a Mono SerialPort, but much lower CPU usage, making it suitable for low power linux ARM boards.</description>
+    <dependencies>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Microsoft.Win32.Registry" version="4.7.0" exclude="Build,Analyzers" />
+        <dependency id="Mono.Posix.NETStandard" version="1.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
