@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Accord.Statistics.Models.Regression.Linear;
+using System.Linq;
 
 namespace Manus.Skeletons
 {
@@ -11,8 +13,8 @@ namespace Manus.Skeletons
         public GameObject rightHand, endPanel;
 
         Vector3 realHandRotation;
-        Vector3[] calibrationPoints = new Vector3[4] { Vector3.zero, Vector3.zero, Vector3.zero, Vector3.zero };
         bool running, pressed;
+        List<Vector3> calibrationPoints = new List<Vector3>();
 
         private void Awake()
         {
@@ -21,6 +23,18 @@ namespace Manus.Skeletons
 
             StartCoroutine(CalibrationHandler());
 
+        }
+
+        private void Start()
+        {
+            //test whether finding origin works
+            calibrationPoints.Add(new Vector3(-2, 0, 0));
+            calibrationPoints.Add(new Vector3(0, 2, 0));
+            calibrationPoints.Add(new Vector3(0, 0, 2));
+            calibrationPoints.Add(new Vector3(0, 0, -2));
+            //should print (0,0,0)
+            Debug.Log(FindOriginLS());
+            Debug.Log(FindOriginExact());
         }
 
         /// <summary>
@@ -43,6 +57,8 @@ namespace Manus.Skeletons
         /// </summary>
         IEnumerator CalibrationHandler()
         {
+            //reset calibration points list
+            calibrationPoints.Clear();
             running = true;
             //calibrate right hand rotation
             StartCoroutine(RotationCalibration());
@@ -62,13 +78,16 @@ namespace Manus.Skeletons
             helpers[0].SetActive(true);
             pressed = false;
             yield return new WaitUntil(ContinueNextCalibrationPoint);
+            calibrationPoints.Add(rightHand.transform.position);
             rightHand.transform.localEulerAngles = realHandRotation - rightHand.transform.rotation.eulerAngles;
             rightHand.GetComponent<Skeleton>().enabled = true;
             panels[0].SetActive(false);
             helpers[0].SetActive(false);
             running = false;
         }
-
+        /// <summary>
+        /// calibrates the positional offset of the glove
+        /// </summary>
         IEnumerator CalibratePosition()
         {
             //measure calirbation points
@@ -81,13 +100,15 @@ namespace Manus.Skeletons
                 pressed = false;
                 yield return new WaitUntil(ContinueNextCalibrationPoint);
                 //store calibration point
-                calibrationPoints[i] = rightHand.transform.position;
+                calibrationPoints.Add(rightHand.transform.position);
                 //close instruction
                 panels[i].SetActive(false);
-                helpers[i].SetActive(true);
+                helpers[i].SetActive(false);
             }
             //find and replace origin of gameobject based on calibration results
-            Vector3 newOrigin = FindOrigin();
+            //comment line based on which method you want to use
+            Vector3 newOrigin = FindOriginExact();
+            //Vector3 newOrigin = FindOriginLS();
             rightHand.transform.position = newOrigin;
             running = false;
         }
@@ -111,35 +132,73 @@ namespace Manus.Skeletons
                 pressed = true;
             }
         }
+
+        /// <summary>
+        /// convert array to A and f matrix. based on https://jekel.me/2015/Least-Squares-Sphere-Fit/
+        /// </summary>
+        /// <param name="vectorArray"></param>
+        /// <returns></returns>
+        (double[][], double[][]) ConvertVector(Vector3[] vectorArray)
+        {
+            int numRows = vectorArray.Length;
+
+            double[][] A = new double[numRows][];
+            double[][] f = new double[numRows][];
+            for (int i = 0; i < numRows; i++)
+            {
+                A[i] = new double[] { 2 * vectorArray[i].x, 2 * vectorArray[i].y, 2 * vectorArray[i].z, 1 };
+                f[i] = new double[] { Mathf.Pow(vectorArray[i].x, 2) + Mathf.Pow(vectorArray[i].y, 2) + Mathf.Pow(vectorArray[i].z, 2) };
+            }
+
+            return (A, f);
+        }
+
+        /// <summary>
+        /// Finds origin based on calibration points,using least squares
+        /// </summary>
+        Vector3 FindOriginLS()
+        {
+            double[][] A;
+            double[][] f;
+            (A, f) = ConvertVector(calibrationPoints.ToArray());
+            OrdinaryLeastSquares ols = new OrdinaryLeastSquares();
+            MultivariateLinearRegression regression = ols.Learn(A, f);
+            double[][] coefficients = regression.Weights;
+
+            return new Vector3((float)coefficients[0][0], (float)coefficients[1][0], (float)coefficients[2][0]);
+
+        }
+
         /// <summary>
         /// This function implements the sphere fitting algorithm as described in https://arxiv.org/abs/1506.02776.
         /// </summary>
         /// <returns>Vector3 - Center pivot gameobject</returns>
-        Vector3 FindOrigin()
+
+        Vector3 FindOriginExact()
         {
+            float a = 0;
+            float b = 0;
+            float c = 0;
+            float d = 0;
+            float e = 0;
+            float f = 0;
+            float g = 0;
+            float h = 0;
+            float j = 0;
+            float k = 0;
+            float l = 0;
+            float m = 0;
+            float N = calibrationPoints.Count;
             float sum_x = 0;
             float sum_y = 0;
             float sum_z = 0;
             float sum_x_sq = 0;
             float sum_y_sq = 0;
             float sum_z_sq = 0;
-            float a = 0;
-            float b = 0;
-            float c = 0;
-            float d = 0;
-            float N = 0;
-            float e = 0;
-            float f = 0;
-            float g = 0;
-            float h = 0;
-            float l = 0;
-            float m = 0;
-            float j = 0;
-            float k = 0;
-            float nom = 0;
             float x_0 = 0;
             float y_0 = 0;
             float z_0 = 0;
+            float nom = 0;
 
             foreach (Vector3 coordinate in calibrationPoints)
             {
@@ -159,9 +218,11 @@ namespace Manus.Skeletons
                 g += -2 * N * coordinate.y * coordinate.z;
                 h += N * coordinate.y * Mathf.Pow(coordinate.x, 2) + N * Mathf.Pow(coordinate.y, 3)
                     + N * coordinate.y * Mathf.Pow(coordinate.z, 2);
+
                 l += -2 * N * Mathf.Pow(coordinate.z, 2);
                 m += N * coordinate.z * Mathf.Pow(coordinate.x, 2) + N * Mathf.Pow(coordinate.z, 3)
                     + N * coordinate.z * Mathf.Pow(coordinate.y, 2);
+
             }
             a += 2 * Mathf.Pow(sum_x, 2);
             b += 2 * sum_x * sum_y;
@@ -174,12 +235,15 @@ namespace Manus.Skeletons
             g += 2 * sum_y * sum_z;
             h += -sum_x_sq * sum_y - sum_y_sq * sum_y - sum_z_sq * sum_y;
             h = -h;
+
             j = c;
             k = g;
             l += 2 * Mathf.Pow(sum_z, 2);
             m += -sum_x_sq * sum_z - sum_y_sq * sum_z - sum_z_sq * sum_z;
             m = -m;
+
             nom = a * (f * l - g * k) - e * (b * l - c * k) + j * (b * g - c * f);
+
             x_0 = (d * (f * l - g * k) - h * (b * l - c * k) + m * (b * g - c * f)) / nom;
             y_0 = (a * (h * l - m * g) - e * (d * l - m * c) + j * (d * g - h * c)) / nom;
             z_0 = (a * (f * m - h * k) - e * (b * m - d * k) + j * (b * h - d * f)) / nom;
