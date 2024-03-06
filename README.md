@@ -66,53 +66,28 @@ The coroutine below determines all the calibration points. A calibration point i
 ```
 The function below returns the center of the positions found through the calibration. This should be the 'real pivot point' and in global world coordinates. It implements the sphere fitting algorithm as described in https://arxiv.org/abs/1506.02776. The equations 26 through 34 are written in the function below, returning the center point.
 ```
-     Vector3 FindOrigin()
+     Vector3 FindOriginExact()
      {
         foreach (Vector3 coordinate in calibrationPoints)
         {
-            sum_x += coordinate.x;
-            sum_y += coordinate.y;
-            sum_z += coordinate.z;
-            sum_x_sq += Mathf.Pow(coordinate.x, 2);
-            sum_y_sq += Mathf.Pow(coordinate.y, 2);
-            sum_z_sq += Mathf.Pow(coordinate.z, 2);
-            a += -2 * N * Mathf.Pow(coordinate.x, 2);
-            b += -2 * N * coordinate.x * coordinate.y;
-            c += -2 * N * coordinate.x * coordinate.z;
-            d += N* Mathf.Pow(coordinate.x, 3) + N* coordinate.x* Mathf.Pow(coordinate.y,2)
-                + N*coordinate.x* Mathf.Pow(coordinate.z, 2);
-            
-            f += -2 * N * Mathf.Pow(coordinate.y, 2);
-            g += -2 * N * coordinate.y * coordinate.z;
-            h += N * coordinate.y * Mathf.Pow(coordinate.x, 2)+ N * Mathf.Pow(coordinate.y, 3) 
-                + N * coordinate.y * Mathf.Pow(coordinate.z, 2);
-            l += -2*N * Mathf.Pow(coordinate.z, 2);
-            m += N * coordinate.z * Mathf.Pow(coordinate.x, 2) + N * Mathf.Pow(coordinate.z, 3)
-                + N * coordinate.z * Mathf.Pow(coordinate.y, 2);
+            .....
         }
-        a += 2 * Mathf.Pow(sum_x, 2);
-        b += 2 * sum_x * sum_y;
-        c += 2 * sum_x * sum_z;
-        d += -sum_x_sq * sum_x - sum_y_sq * sum_x - sum_z_sq * sum_x;
-        d = -d;
-       
-        e = b;
-        f += 2 * Mathf.Pow(sum_y, 2);
-        g += 2*sum_y*sum_z;
-        h += -sum_x_sq*sum_y - sum_y_sq*sum_y - sum_z_sq*sum_y;
-        h = -h;
-        j = c;
-        k = g;
-        l += 2 * Mathf.Pow(sum_z, 2);
-        m += -sum_x_sq*sum_z - sum_y_sq*sum_z - sum_z_sq*sum_z;
-        m = -m;
-        nom = a*(f*l-g*k)-e*(b*l-c*k)+j*(b*g-c*f);
-        x_0 = (d*(f*l-g*k)-h*(b*l-c*k) + m*(b*g-c*f)) / nom;
-        y_0 = (a*(h*l-m*g)-e*(d*l-m*c) +j*(d*g-h*c))/ nom;
-        z_0 = (a*(f*m-h*k)-e*(b*m-d*k) +j*(b*h-d*f))/ nom;
-        
-        return new Vector3(x_0,y_0,z_0);
-      }
+     }
+```
+The function below implements sphere fitting based on the least squares method. This method is based on https://jekel.me/2015/Least-Squares-Sphere-Fit/
+```
+       Vector3 FindOriginLS()
+        {
+            double[][] A;
+            double[][] f;
+            (A, f) = ConvertVector(calibrationPoints.ToArray());
+            OrdinaryLeastSquares ols = new OrdinaryLeastSquares();
+            MultivariateLinearRegression regression = ols.Learn(A, f);
+            double[][] coefficients = regression.Weights;
+
+            return new Vector3((float)coefficients[0][0], (float)coefficients[1][0], (float)coefficients[2][0]);
+
+        }
 ```
 To test whether the sphere fitting works, a test case was developed here. Whatever the sphere fitting algorithm is, it should return (0,0,0)
 ```
