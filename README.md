@@ -24,45 +24,69 @@ The following is called when the participant starts this calibration procedure. 
         StartCoroutine(CalibrationHandler());
     }
 ```
-The coroutine was made to repeat the calibration steps for each object. The logic is the same for each gameobject which needs to be calibrated; an example for one object can be found below. It sets the 'running' variable as true, which turns false once the calibration for a certain object is done at the end of the FourPointCalibration function. The checking for whether it becomes false is done with the 'WaitUntil' function. Afterwards, the coroutine continues with the next object, where it repeats these steps again
+The coroutine was made to repeat the calibration steps for each object. The logic is the same for each gameobject which needs to be calibrated; an example for one object can be found below. It sets the 'running' variable as true, which turns false once the calibration for a certain object is done. The checking for whether it becomes false is done with the 'WaitUntil' function. Afterwards, the coroutine ends.
 ```
  IEnumerator CalibrationHandler()
     {
-        running = true;
-        //calibrate vr headset position
-        StartCoroutine(FourPointCalibration(mainCamera,cameraPanels));
-        //make sure code pauses untill calibration is finished
-        yield return new WaitUntil(CanContinueCalibration);
-        ...
+            //reset calibration points list
+            calibrationPoints.Clear();
+            running = true;
+            //calibrate right hand rotation
+            StartCoroutine(RotationCalibration());
+            yield return new WaitUntil(CanContinueCalibration);
+            running = true;
+            //calibrate right hand position
+            StartCoroutine(CalibratePosition());
+            yield return new WaitUntil(CanContinueCalibration);
+            endPanel.SetActive(true);
     }
+```
+The following function calibrates the rotational offset of the glove to the actual rotation. "realHandRotation" is the desired rotation and set before the scene starts in the inspector window. The desired rotation is the rotation which the hand should be, if the player follows the instruction at the first step of the calibration.
+```
+        IEnumerator RotationCalibration()
+        {
+            panels[0].SetActive(true);
+            helpers[0].SetActive(true);
+            pressed = false;
+            yield return new WaitUntil(ContinueNextCalibrationPoint);
+            calibrationPoints.Add(rightHand.transform.position);
+            rightHand.transform.localEulerAngles = realHandRotation - rightHand.transform.rotation.eulerAngles;
+            rightHand.GetComponent<Skeleton>().enabled = true;
+            panels[0].SetActive(false);
+            helpers[0].SetActive(false);
+            running = false;
+        }
 ```
 The coroutine below determines all the calibration points. A calibration point is the global position recorded when a specific action has been made by the user. These global positions can then be used for the sphere fitting algorithm in order to find the pivot point. The storing of a calibration points follows the same steps: 
 1. First the instruction is shown, which tells the player which action to do
-2. The function waits untill the button is pressed by the player
-3. The global position of the calibration stepis then stored and the instruction is disabled. This is repeated untill all instructions have been shown, after which the origin of the object can be determined. The object which is being calibrated is then assigned with the new pivot point (the center of these calibration points).
-(Note: Here,it is assumed that the amount of panels equals the amount of calibration points; since each different calibration step has a different instruction. However, for more accurate pivot calibration, this coroutine should be independent from the amount of instructions, so more calibration points can be stored, e.g. the points between actions. This should be improved in the future.)
+2. The function waits untill 'enter' is pressed by the player
+3. The global position of the calibration step is then stored and the instruction is disabled. This is repeated untill all instructions have been shown, after which the origin of the object can be determined. By using either FindOriginLS or FindOriginExact you can choose which sphere fitting method to use. The object which is being calibrated is then assigned with the new pivot point (the center of these calibration points).
+(Note: Here,it is assumed that the amount of panels equals the amount of calibration points; since each different calibration step has a different instruction. The measurement of calibration points was tried being set independent of the panel length, so more points could be measured, but it did not result in a better outcome of the calibration) 
 ```
-  IEnumerator FourPointCalibration(GameObject calibratingObject, GameObject[] panels)
-    {
-        for (int i = 0; i < panels.Length; i++)
+        IEnumerator CalibratePosition()
         {
-            //show instructions specific panel
-            panels[i].SetActive(true);
-            //wait untill button is pressed
-            pressed = false;
-            yield return new WaitUntil(ContinueNextCalibrationPoint);
-            //store calibration point
-            calibrationPoints[i] = calibratingObject.transform.position;
-            //close instruction
-            panels[i].SetActive(false);
+            //measure calirbation points
+            for (int i = 1; i < panels.Length; i++)
+            {
+                //show instructions specific panel
+                panels[i].SetActive(true);
+                helpers[i].SetActive(true);
+                //wait untill button is pressed
+                pressed = false;
+                yield return new WaitUntil(ContinueNextCalibrationPoint);
+                //store calibration point
+                calibrationPoints.Add(rightHand.transform.position);
+                //close instruction
+                panels[i].SetActive(false);
+                helpers[i].SetActive(false);
+            }
+            //find and replace origin of gameobject based on calibration results
+            //comment line based on which method you want to use
+            Vector3 newOrigin = FindOriginExact();
+            //Vector3 newOrigin = FindOriginLS();
+            rightHand.transform.position = newOrigin;
+            running = false;
         }
-        //find and replace origin of gameobject based on calibration results
-        Vector3 newOrigin = FindOrigin();
-        calibratingObject.transform.position = newOrigin;
-        //activate gameobject
-        calibratingObject.SetActive(true);
-        running = false;
-    }
 ```
 The function below returns the center of the positions found through the calibration. This should be the 'real pivot point' and in global world coordinates. It implements the sphere fitting algorithm as described in https://arxiv.org/abs/1506.02776. The equations 26 through 34 are written in the function below, returning the center point.
 ```
