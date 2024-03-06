@@ -4,8 +4,10 @@ Before starting the experiment, the pivot point of the glove needs to be calibra
 
 In the current implementation, the geometric center of the trackers is determined by Optitrack, which is then sent to Unity. In Unity, this position is directly transferred as the position of a certain parent gameobject, which itself is empty. A virtual offset is artificially created by assigning a child gameobject to this parent gameobject. This child gameobject consists of the model, which the user can see. With this, we created our own pivot point in Unity. This is visualised in the image below.
 ![plot](unity_pivot.png)
+
 However, the pivot point still needs to be calibrated. By positionally locking the to be calibrated object, and simply rotating it, the real pivot position can be found. With every rotation the object makes, the global position sent by optitrack can be saved. Finding the center of these global position will give the actual pivot point. A visualisation of this method can be found below.
 ![plot](cal_rotation.png)
+
 Finding the center can be done through sphere fitting. A virtual sphere is made with all these global positions. In the current case, the exact solution is used as described in https://arxiv.org/abs/1506.02776. Now, having found the real pivot position, it is assigned to the child gameobject. 
 ## Code
 In the Calibration.cs file the code for the calibration procedure can be found.
