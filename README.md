@@ -1,7 +1,9 @@
 # Initialisation
-Make sure the Optitrack streaming client is set-up correctly, with the correct IP adresses. The Manus glove should be calibrated in the Manu Core application as well as loaded inside Unity.
+Make sure the Optitrack streaming client is set-up correctly, with the correct IP adresses. The Manus glove should be calibrated in the Manu Core application as well as loaded inside Unity. The rigidbody ids in Optitrack for all objects should correspond with the rigid body id of the objects in Unity.
 
 # Calibration
+Note: calibration method doesn't work. It's prone to errors and fitting too large spheres.
+
 Before starting the experiment, the pivot point of the glove needs to be calibrated. The reason of this, is that the geometric center of the markers on top of the gloves is not equal to the pivot point of the hand. This means that when the participant rotates their hand, the rotation of the virtual hand does not match. The image below shows this offset.
 
 ![plot](pivot_img.png)
