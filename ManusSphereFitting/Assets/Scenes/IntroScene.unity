@@ -300,7 +300,7 @@ Transform:
   m_GameObject: {fileID: 32123326}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.000000014901163, w: 1}
-  m_LocalPosition: {x: 0, y: 0.761, z: -0.044}
+  m_LocalPosition: {x: 0, y: -0.036, z: -0.044}
   m_LocalScale: {x: 0.08, y: 0.08, z: 0.08}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3373,7 +3373,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 338540883}
         m_TargetAssemblyTypeName: Manus.Skeletons.Calibration, Assembly-CSharp
         m_MethodName: EndCalibration
         m_Mode: 1
@@ -3775,7 +3775,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3798361029752001700, guid: 9a32d482689653847b22155fb3096f79, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3798361029752001700, guid: 9a32d482689653847b22155fb3096f79, type: 3}
       propertyPath: DrawCameras
@@ -4085,7 +4085,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 1124364386}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a331805347588fe4a8161c8875d24396, type: 3}
   m_Name: 
@@ -5600,7 +5600,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 338540883}
         m_TargetAssemblyTypeName: Manus.Skeletons.Calibration, Assembly-CSharp
         m_MethodName: RestartCalibration
         m_Mode: 1

@@ -108,6 +108,8 @@ namespace Manus.Skeletons
             //find and replace origin of gameobject based on calibration results
             //comment line based on which method you want to use
             Vector3 newOrigin = FindOriginExact();
+            Debug.Log(newOrigin);
+            //Debug.Log(FindOriginLS());
             //Vector3 newOrigin = FindOriginLS();
             rightHand.transform.position = newOrigin;
             running = false;
